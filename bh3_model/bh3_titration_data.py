@@ -37,16 +37,18 @@ norm_data = numpy.zeros(numpy.shape(data))
 raw_max = numpy.nanmax(data[:,1:])
 raw_min = numpy.nanmin(data[:,1:])
 
-norm_data[:,0] = data[:,0] # Copy over the time column
+# Copy the time column over into the normalized data array
+norm_data[:,0] = data[:,0]
 
 for row in range(0, NUM_PTS * NUM_REPLICATES):
-    for col in range(1, NUM_COLS): # Leave out the time column!
+    # Don't normalize the time column (i.e., column 0)
+    for col in range(1, NUM_COLS):
         raw_val = data[row, col]
         norm_data[row, col] = (raw_val - raw_min) / (raw_max - raw_min)
 
 # Calculate the mean and SD for each column
 # =========================================
-data_mean[:,0] = data[0:NUM_PTS,0] # Copy time column 
+data_mean[:,0] = data[0:NUM_PTS,0] # Copy time column
 
 for col_index in range(1,NUM_COLS): # Leave out time column
     for time_index in range(0, NUM_PTS):
@@ -83,11 +85,11 @@ fccp_stds = data_sd[:, FCCP]
 dmso_avgs = data_mean[:, DMSO]
 dmso_stds = data_sd[:, DMSO]
 
-n = 1
-bim_avgs = data_mean[:, BIM_START + n]
-bim_stds = data_sd[:, BIM_START + n]
-bid_avgs = data_mean[:, BID_START + n]
-bid_stds = data_sd[:, BID_START + n]
+conc_pick =4 
+bim_avgs = data_mean[:, BIM_START + conc_pick]
+bim_stds = data_sd[:, BIM_START + conc_pick]
+bid_avgs = data_mean[:, BID_START + conc_pick]
+bid_stds = data_sd[:, BID_START + conc_pick]
 
 #bim_avgs = data_mean[:, BIM_RANGE]
 #bim_stds = data_sd[:, BIM_RANGE]
@@ -105,24 +107,4 @@ def plot_data(time_col, col_range):
 
 
 
-
-"""
-BIM100 = 3
-BIM30 = 4
-BIM10 = 5
-BIM3 = 6
-BIM1 = 7
-BIM03 = 8
-BIM01 = 9
-BIM003 = 10
-BID100 = 11
-BID30 = 12
-BID10 = 13
-BID3 = 14
-BID1 = 15
-BID03 = 16
-BID01 = 17
-BID003 = 18
-BID001 = 19
-"""
 
