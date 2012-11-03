@@ -85,16 +85,18 @@ fccp_stds = data_sd[:, FCCP]
 dmso_avgs = data_mean[:, DMSO]
 dmso_stds = data_sd[:, DMSO]
 
-conc_pick =4 
-bim_avgs = data_mean[:, BIM_START + conc_pick]
-bim_stds = data_sd[:, BIM_START + conc_pick]
-bid_avgs = data_mean[:, BID_START + conc_pick]
-bid_stds = data_sd[:, BID_START + conc_pick]
+#conc_pick =4 
+#bim_avgs = data_mean[:, BIM_START + conc_pick]
+#bim_stds = data_sd[:, BIM_START + conc_pick]
+#bid_avgs = data_mean[:, BID_START + conc_pick]
+#bid_stds = data_sd[:, BID_START + conc_pick]
 
-#bim_avgs = data_mean[:, BIM_RANGE]
-#bim_stds = data_sd[:, BIM_RANGE]
-#bid_avgs = data_mean[:, BID_RANGE]
-#bid_stds = data_sd[:, BID_RANGE]
+bim_avgs = data_mean[:, BIM_RANGE]
+bim_stds = data_sd[:, BIM_RANGE]
+bid_avgs = data_mean[:, BID_RANGE]
+bid_stds = data_sd[:, BID_RANGE]
+
+concs = [100, 30, 10, 3, 1, 0.3, 0.1, 0.03, 0.01]
 
 def plot_data(time_col, col_range):
     plt.ion()
