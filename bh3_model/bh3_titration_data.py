@@ -79,11 +79,12 @@ for col_index in range(1,NUM_COLS): # Leave out time column
         data_mean[time_index, col_index] = avg
         data_sd[time_index, col_index] = sd
 
-exp_tspan = data_mean[:, TIME]
-fccp_avgs = data_mean[:, FCCP]
-fccp_stds = data_sd[:, FCCP]
-dmso_avgs = data_mean[:, DMSO]
-dmso_stds = data_sd[:, DMSO]
+MAX_TIME_INDEX = 37
+exp_tspan = data_mean[0:MAX_TIME_INDEX, TIME]
+fccp_avgs = data_mean[0:MAX_TIME_INDEX, FCCP]
+fccp_stds = data_sd[0:MAX_TIME_INDEX, FCCP]
+dmso_avgs = data_mean[0:MAX_TIME_INDEX, DMSO]
+dmso_stds = data_sd[0:MAX_TIME_INDEX, DMSO]
 
 #conc_pick =4 
 #bim_avgs = data_mean[:, BIM_START + conc_pick]
@@ -91,10 +92,10 @@ dmso_stds = data_sd[:, DMSO]
 #bid_avgs = data_mean[:, BID_START + conc_pick]
 #bid_stds = data_sd[:, BID_START + conc_pick]
 
-bim_avgs = data_mean[:, BIM_RANGE]
-bim_stds = data_sd[:, BIM_RANGE]
-bid_avgs = data_mean[:, BID_RANGE]
-bid_stds = data_sd[:, BID_RANGE]
+bim_avgs = data_mean[0:MAX_TIME_INDEX, BIM_RANGE]
+bim_stds = data_sd[0:MAX_TIME_INDEX, BIM_RANGE]
+bid_avgs = data_mean[0:MAX_TIME_INDEX, BID_RANGE]
+bid_stds = data_sd[0:MAX_TIME_INDEX, BID_RANGE]
 
 concs = [100, 30, 10, 3, 1, 0.3, 0.1, 0.03, 0.01]
 
