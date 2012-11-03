@@ -14,7 +14,7 @@ import collections
 from bh3_titration_data import *
 
 T_OFFSET_INDEX = 3
-exp_dmso_max = max(dmso_avgs)
+#exp_dmso_max = max(dmso_avgs)
 exp_fccp_min = min(fccp_avgs)
 
 # Instantiate report
@@ -32,7 +32,7 @@ class Model(object):
     """
 
     def __init__(self, f0):
-        self.num_params = 24
+        self.num_params = 33 
         self.f0 = f0
 
         self.parameters = [None] * self.num_params
@@ -41,34 +41,44 @@ class Model(object):
         self.sim_param_values = numpy.empty(self.num_params)
     
         self.parameters[0] = Parameter('fmax', 1.1629)
-        self.parameters[1] = Parameter('k_agg', 0.023158)
+        self.parameters[1] = Parameter('k_agg', 0.020)
         self.parameters[2] = Parameter('k_bg', 0.002261)
-        self.parameters[3] = Parameter('t_offset', 2.184)
+        self.parameters[3] = Parameter('t_offset', 4.0)
         self.parameters[4] = Parameter('f0', 0)
 
         k1_initval = 0.0135
-        self.parameters[5] = Parameter('k1_bim100', k1_initval)
-        self.parameters[6] = Parameter('k1_bim30', k1_initval)
-        self.parameters[7] = Parameter('k1_bim10', k1_initval)
-        self.parameters[8] = Parameter('k1_bim3', k1_initval)
-        self.parameters[9] = Parameter('k1_bim1', k1_initval)
-        self.parameters[10] = Parameter('k1_bim03', k1_initval)
-        self.parameters[11] = Parameter('k1_bim01', k1_initval)
-        self.parameters[12] = Parameter('k1_bim003', k1_initval)
-        self.parameters[13] = Parameter('k1_bim001', k1_initval)
+        self.parameters[5] = Parameter('k1_bim100', 0.032)
+        self.parameters[6] = Parameter('k1_bim30', 0.023)
+        self.parameters[7] = Parameter('k1_bim10', 0.0147)
+        self.parameters[8] = Parameter('k1_bim3', 0.0097)
+        self.parameters[9] = Parameter('k1_bim1', 0.0095)
+        self.parameters[10] = Parameter('k1_bim03', 0.0185)
+        self.parameters[11] = Parameter('k1_bim01', 0.009)
+        self.parameters[12] = Parameter('k1_bim003', 0.006)
+        self.parameters[13] = Parameter('k1_bim001', 0.001)
 
-        self.parameters[14] = Parameter('k1_bid100', k1_initval)
-        self.parameters[15] = Parameter('k1_bid30', k1_initval)
-        self.parameters[16] = Parameter('k1_bid10', k1_initval)
-        self.parameters[17] = Parameter('k1_bid3', k1_initval)
-        self.parameters[18] = Parameter('k1_bid1', k1_initval)
-        self.parameters[19] = Parameter('k1_bid03', k1_initval)
-        self.parameters[20] = Parameter('k1_bid01', k1_initval)
-        self.parameters[21] = Parameter('k1_bid003', k1_initval)
-        self.parameters[22] = Parameter('k1_bid001', k1_initval)
+        self.parameters[14] = Parameter('k1_bid100', 0.065)
+        self.parameters[15] = Parameter('k1_bid30', 0.054)
+        self.parameters[16] = Parameter('k1_bid10', 0.0428)
+        self.parameters[17] = Parameter('k1_bid3', 0.0300)
+        self.parameters[18] = Parameter('k1_bid1', 0.025)
+        self.parameters[19] = Parameter('k1_bid03', 0.022)
+        self.parameters[20] = Parameter('k1_bid01', 0.01)
+        self.parameters[21] = Parameter('k1_bid003', 0.01)
+        self.parameters[22] = Parameter('k1_bid001', 0.01)
 
-        self.parameters[23] = Parameter('k2', 0.005) 
-        
+        self.parameters[23] = Parameter('k2_100', 0.12)
+        self.parameters[24] = Parameter('k2_30', 0.07)
+        self.parameters[25] = Parameter('k2_10', 0.098)
+        self.parameters[26] = Parameter('k2_3', 0.083)
+        self.parameters[27] = Parameter('k2_1', 0.019)
+        self.parameters[28] = Parameter('k2_03', 0.0037)
+        self.parameters[29] = Parameter('k2_01', 0.001)
+        self.parameters[30] = Parameter('k2_003', 0.001)
+        self.parameters[31] = Parameter('k2_001', 0.0001)
+
+        self.parameters[32] = Parameter('n', 4)
+
         self.observables[0] = Observable('jc1', [0], [1])
 
     def simulate(self, tspan, param_values=None):
@@ -88,25 +98,33 @@ class Model(object):
         k_bg = self.sim_param_values[2]
         t_offset = self.sim_param_values[3]
         f0 = self.sim_param_values[4]
-        k2 = self.sim_param_values[23]
-        n = 4
+        n = self.sim_param_values[32]
 
         dmso = (f0 +
                (fmax*
                (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
                numpy.exp(-k_bg*(tspan + t_offset)))
 
-        # Catalysis Activation Model
+        # Catalyst Activation Model
         # ==========================
-        bim = numpy.zeros((NUM_PTS, NUM_CONCS))
-        bid = numpy.zeros((NUM_PTS, NUM_CONCS))
-        def catalyst_activation(k1):
+        bim = numpy.zeros((MAX_TIME_INDEX, NUM_CONCS))
+        bid = numpy.zeros((MAX_TIME_INDEX, NUM_CONCS))
+
+        #### A version with the k2 linearly dependent on concentration
+        #def catalyst_activation(k1, conc):
+        #    return (f0 + (fmax * (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
+        #            numpy.exp(-k1 * ((1 - numpy.exp(-((k2_slope*conc)+k2_int)*(tspan+t_offset)))**n) * (tspan + t_offset)))
+
+        # A version with the k2 shared for each concentration
+        def catalyst_activation(k1, k2):
             return (f0 + (fmax * (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
                     numpy.exp(-k1 * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) * (tspan + t_offset)))
 
         for i in range(NUM_CONCS):
-            bim[:, i] = catalyst_activation(self.sim_param_values[5 + i])
-            bid[:, i] = catalyst_activation(self.sim_param_values[14 + i])
+            bim[:, i] = catalyst_activation(self.sim_param_values[5 + i], 
+                                            self.sim_param_values[23 + i])
+            bid[:, i] = catalyst_activation(self.sim_param_values[14 + i],
+                                            self.sim_param_values[23 + i])
 
         return (dmso, bim, bid) 
 
@@ -299,8 +317,9 @@ def likelihood(mcmc, position):
     (dmso_sim, bim_sim, bid_sim) = model.simulate(offset_tspan,
                                                 mcmc.cur_params(position))
 
-    dmso_obj = numpy.sum((dmso_avgs - dmso_sim) ** 2 /
-                         (2 * dmso_stds ** 2))
+    #dmso_obj = numpy.sum((dmso_avgs - dmso_sim) ** 2 /
+    #                     (2 * dmso_stds ** 2))
+
     bim_obj = 0
     for i in range(NUM_CONCS):
         bim_obj += numpy.sum((bim_avgs[:, i] - bim_sim[:, i]) ** 2 /
@@ -313,7 +332,7 @@ def likelihood(mcmc, position):
 
     # return (dmso_obj**2) + bim_obj
     #return (dmso_obj**2) + bim_obj + bid_obj
-    return dmso_obj + bim_obj + bid_obj
+    return bim_obj + bid_obj
  
 def step(mcmc):
     """The function to call at every iteration. Currently just prints
@@ -330,7 +349,7 @@ def prior(mcmc, position):
     """
     param_vals = mcmc.cur_params(position)
 
-    if param_vals[0] < 0.5 or param_vals[0] > 2: # fmax
+    if param_vals[0] < 0.1 or param_vals[0] > 10: # fmax
         return 1e15
     if param_vals[1] < 0 or param_vals[1] > 10: # k_agg
         return 1e15
@@ -338,37 +357,13 @@ def prior(mcmc, position):
         return 1e15
     if param_vals[3] < 0 or param_vals[3] > 20: # t_offset
         return 1e15
-    if param_vals[4] < 0 or param_vals[4] > 0.2: # f0
+    if param_vals[4] < 0 or param_vals[4] > 0.4: # f0
         return 1e15
-    """
-    if param_vals[5] < 0 or param_vals[5] > 10: # k1_bid
+    for i in range(5, 32):                       # All rate parameters
+        if param_vals[i] < 0 or param_vals[i] > 10:
+            return 1e15
+    if param_vals[32] < 1 or param_vals[32] > 10:  # n
         return 1e15
-    if param_vals[6] < 0 or param_vals[6] > 10: # k2_bim
-        return 1e15
-    if param_vals[7] < 0 or param_vals[7] > 10: # k2_bid
-        return 1e15
-    
-    
-        k1_bim100 = self.sim_param_values[5]
-        k1_bim30 = self.sim_param_values[6]
-        k1_bim10 = self.sim_param_values[7]
-        k1_bim3 = self.sim_param_values[8]
-        k1_bim1 = self.sim_param_values[9]
-        k1_bim03 = self.sim_param_values[10]
-        k1_bim01 = self.sim_param_values[11]
-        k1_bim003 = self.sim_param_values[12]
-        k1_bim001 = self.sim_param_values[13]
-
-        k1_bid100 = self.sim_param_values[14]
-        k1_bid30 = self.sim_param_values[15]
-        k1_bid10 = self.sim_param_values[16]
-        k1_bid3 = self.sim_param_values[17]
-        k1_bid1 = self.sim_param_values[18]
-        k1_bid03 = self.sim_param_values[19]
-        k1_bid01 = self.sim_param_values[20]
-        k1_bid003 = self.sim_param_values[21]
-        k1_bid001 = self.sim_param_values[22]
-    """
 
     return 0
     
