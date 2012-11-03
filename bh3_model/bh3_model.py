@@ -13,7 +13,7 @@ import collections
 #from bh3_fig1_data import *
 from bh3_titration_data import *
 
-T_OFFSET_INDEX = 3
+T_OFFSET_INDEX = 2 
 exp_dmso_max = max(dmso_avgs)
 exp_fccp_min = min(fccp_avgs)
 
@@ -34,24 +34,25 @@ class Model(object):
     def __init__(self, f0):
         self.f0 = f0
 
-        self.parameters = [None] * 10 
+        self.num_params = 8 
+        self.parameters = [None] * self.num_params
         self.observables = [None] * 1
         self.initial_conditions = []
-        self.sim_param_values = numpy.empty(10)
+        self.sim_param_values = numpy.empty(self.num_params)
     
-        #self.parameters[0] = Parameter('fmax', 116.29)
         self.parameters[0] = Parameter('fmax', 1.1629)
         self.parameters[1] = Parameter('k_agg', 0.023158)
-        self.parameters[2] = Parameter('k_bg', 0.002261)
-        self.parameters[3] = Parameter('t_offset', 2.184)
+        self.parameters[2] = Parameter('t_offset', 2.184)
+        self.parameters[3] = Parameter('f0', 0.16441)
         self.parameters[4] = Parameter('k1_bim', 0.0135)
         self.parameters[5] = Parameter('k1_bid', 0.09)
-        self.parameters[6] = Parameter('k2_bim', 0.009369)
-        self.parameters[7] = Parameter('k2_bid', 0.004541)
-        self.parameters[8] = Parameter('n', 8.059)
+        self.parameters[6] = Parameter('k2', 0.009369)
+        self.parameters[7] = Parameter('n', 8)
+        #self.parameters[2] = Parameter('k_bg', 0.002261)
+        #self.parameters[7] = Parameter('k2_bid', 0.004541)
+        #self.parameters[8] = Parameter('n', 8.059)
         #self.parameters[9] = Parameter('f0', self.f0)
         #self.parameters[9] = Parameter('f0', 16.441)
-        self.parameters[9] = Parameter('f0', 0.16441)
 
         self.observables[0] = Observable('jc1', [0], [1])
 
@@ -69,52 +70,36 @@ class Model(object):
         # Aliases to the parameters
         fmax = self.sim_param_values[0]
         k_agg = self.sim_param_values[1]
-        k_bg = self.sim_param_values[2]
-        t_offset = self.sim_param_values[3]
+        t_offset = self.sim_param_values[2]
+        f0 = self.sim_param_values[3]
         k1_bim = self.sim_param_values[4]
         k1_bid = self.sim_param_values[5]
-        k2_bim = self.sim_param_values[6]
-        # NOTE!!!
-        # k2_bid has been fixed to the k2_bim value.
-        #k2_bid = self.sim_param_values[7]
-        k2_bid = k2_bim
+        k2 = self.sim_param_values[6]
+        n = self.sim_param_values[7]
+        #n = 1
 
-        #n = self.sim_param_values[8]
-        n = 1
-        f0 = self.sim_param_values[9]
-        #f0 = self.f0
-
+        """
         dmso = (f0 +
                (fmax*
                (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
                numpy.exp(-k_bg*(tspan + t_offset)))
         """
-        Simple Catalysis Model:
-        bim = (self.f0 +
-               (fmax*
-               (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-(k_bg+k1_bim)*(tspan + t_offset)))
-        bid = (self.f0 +
-               (fmax*
-               (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-(k_bg+k1_bid)*(tspan + t_offset)))
-        """
+
         # Catalysis Activation Model
         # ==========================
         bim = (f0 +
                (fmax*
-               (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-(k_bg+
-                   ((k1_bim * (1 - numpy.exp(-k2_bim*(tspan+t_offset)))))**n) *
+                    (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
+               numpy.exp(-k1_bim * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) *
                    (tspan + t_offset)))
         bid = (f0 +
                (fmax*
-               (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-(k_bg+
-                   ((k1_bid * (1 - numpy.exp(-k2_bid*(tspan+t_offset)))))**n) *
+                    (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
+               numpy.exp(-k1_bid * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) *
                    (tspan + t_offset)))
 
-        return (dmso, bim, bid) 
+        #return (dmso, bim, bid) 
+        return (bim, bid) 
 
 # Instantiate the model
 # =====================
@@ -181,7 +166,19 @@ def do_fit():
     s += "marginal median position: " + str(median_name_vals) + "\n\n"
     print s
     rep.addText(s)
-    
+   
+    marginal_ar_std = numpy.std(10**mixed_accept_positions, 0)
+    ar_std_name_vals = zip(p_names, marginal_ar_std)
+    s += "marginal (arithmetic) std: " + str(ar_std_name_vals) + "\n\n"
+    print s
+    rep.addText(s)
+
+    marginal_geo_std = numpy.std(mixed_accept_positions, 0)
+    geo_std_name_vals = zip(p_names, marginal_geo_std)
+    s += "marginal (geometric) std: " + str(geo_std_name_vals) + "\n\n"
+    print s
+    rep.addText(s)
+
     # Show histograms for all parameters
     for (index, p) in enumerate(model.parameters):
         plt.figure()
@@ -213,6 +210,7 @@ def do_fit():
     s += "Median of k1_bid/k1_bim ratio: %f" % numpy.median(10**k1_diffs)
     rep.addText(s)
 
+    """
     # Plot histogram of k2_bid/k2_bim ratio
     plt.figure()
     k2_diffs = mixed_accept_positions[:,7] - mixed_accept_positions[:,6]
@@ -227,33 +225,34 @@ def do_fit():
             numpy.mean(10**k2_diffs)
     s += "Median of k2_bid/k2_bim ratio: %f" % numpy.median(10**k2_diffs)
     rep.addText(s)
+    """
 
-    # Plot k1_bim/k2_bim surface
+    # Plot k1_bim/k2 surface
     bayessb.plot.surf(mcmc, 4, 6, mask=mixed_start)
-    plt.title("k1_bim/k2_bim surface")
+    plt.title("k1_bim/k2 surface")
     rep.addCurrentFigure()
     plt.close()
 
-    # Plot k1_bid/k2_bid surface
-    bayessb.plot.surf(mcmc, 5, 7, mask=mixed_start)
+    # Plot k1_bid/k2 surface
+    bayessb.plot.surf(mcmc, 5, 6, mask=mixed_start)
     plt.title("k1_bid/k2_bid surface")
     rep.addCurrentFigure()
     plt.close()
 
-    # Plot histogram of k1_bid, k2_bid, and sum
+    # Plot histogram of k1_bid, k2, and sum
     plt.figure()
-    bid_sum = mixed_accept_positions[:,5] + mixed_accept_positions[:,7]
+    bid_sum = mixed_accept_positions[:,5] + mixed_accept_positions[:,6]
     plt.hist(mixed_accept_positions[:,5], bins=20, alpha=0.5, label="k1_bid")
-    plt.hist(mixed_accept_positions[:,7], bins=20, alpha=0.5, label="k2_bid")
+    plt.hist(mixed_accept_positions[:,6], bins=20, alpha=0.5, label="k2_bid")
     plt.hist(bid_sum, bins=20, alpha=0.5, label="k1_bid*k2_bid") 
     plt.xlabel("Log(k)")
     plt.ylabel("Count")
-    plt.title("k1_bid, k2_bid, and k1_bid*k2_bid")
+    plt.title("k1_bid, k2, and k1_bid*k2")
     plt.legend(loc="center right")
     rep.addCurrentFigure()
     plt.close()
 
-    # Plot histogram of k1_bim, k2_bim, and sum
+    # Plot histogram of k1_bim, k2, and sum
     plt.figure()
     bim_sum = mixed_accept_positions[:,4] + mixed_accept_positions[:,6]
     plt.hist(mixed_accept_positions[:,4], bins=20, alpha=0.5)
@@ -261,7 +260,7 @@ def do_fit():
     plt.hist(bim_sum, bins=20, alpha=0.5) 
     plt.xlabel("Log(k)")
     plt.ylabel("Count")
-    plt.title("k1_bim, k2_bim, and k1_bim*k2_bim")
+    plt.title("k1_bim, k2, and k1_bim*k2")
     plt.legend(loc="center right")
     rep.addCurrentFigure()
     plt.close()
@@ -272,7 +271,7 @@ def do_fit():
     plt.hist(ratio, bins=20)
     plt.xlabel("Log(k)")
     plt.ylabel("Count")
-    plt.title("Log((k1_bid*k2_bid)/(k1_bim*k2_bim))")
+    plt.title("Log((k1_bid*k2)/(k1_bim*k2))")
     rep.addCurrentFigure()
     plt.close()
 
@@ -299,17 +298,20 @@ def likelihood(mcmc, position):
 
     # Calculate objective function values
     # ===================================
-    (dmso_sim, bim_sim, bid_sim) = model.simulate(offset_tspan,
+    #(dmso_sim, bim_sim, bid_sim) = model.simulate(offset_tspan,
+    #                                            mcmc.cur_params(position))
+    (bim_sim, bid_sim) = model.simulate(offset_tspan,
                                                 mcmc.cur_params(position))
 
-    dmso_obj = numpy.sum((dmso_avgs - dmso_sim) ** 2 /
-                         (2 * dmso_stds ** 2))
+    #dmso_obj = numpy.sum((dmso_avgs - dmso_sim) ** 2 /
+    #                     (2 * dmso_stds ** 2))
     bim_obj = numpy.sum((bim_avgs - bim_sim) ** 2 /
                          (2 * bim_stds ** 2))
     bid_obj = numpy.sum((bid_avgs - bid_sim) ** 2 /
                          (2 * bid_stds ** 2))
 
-    return (dmso_obj**2) + bim_obj + bid_obj
+    #return (dmso_obj**2) + bim_obj + bid_obj
+    return bim_obj + bid_obj
 
 def step(mcmc):
     """The function to call at every iteration. Currently just prints
@@ -330,21 +332,17 @@ def prior(mcmc, position):
         return 1e15
     if param_vals[1] < 0 or param_vals[1] > 10: # k_agg
         return 1e15
-    if param_vals[2] < 0 or param_vals[2] > 10: # k_bg
+    if param_vals[2] < 0 or param_vals[2] > 20: # t_offset
         return 1e15
-    if param_vals[3] < 0 or param_vals[3] > 20: # t_offset
+    if param_vals[3] < 0 or param_vals[3] > 0.10: # f0
         return 1e15
     if param_vals[4] < 0 or param_vals[4] > 10: # k1_bim
         return 1e15
     if param_vals[5] < 0 or param_vals[5] > 10: # k1_bid
         return 1e15
-    if param_vals[6] < 0 or param_vals[6] > 10: # k2_bim
+    if param_vals[6] < 0 or param_vals[6] > 10: # k2
         return 1e15
-    if param_vals[7] < 0 or param_vals[7] > 10: # k2_bid
-        return 1e15
-    if param_vals[8] < 1 or param_vals[8] > 25: # n
-        return 1e15
-    if param_vals[9] < 0 or param_vals[9] > 0.25: # f0
+    if param_vals[7] < 1 or param_vals[7] > 10: # k2
         return 1e15
 
     return 0
@@ -356,9 +354,9 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
     plt.figure()
     
     # Plot data
-    plt.plot(exp_tspan, dmso_avgs, 'rx', label='DMSO data')
-    plt.plot(exp_tspan, bim_avgs, 'gx', label='Bim data')
-    plt.plot(exp_tspan, bid_avgs, 'bx', label='Bid data')
+    #plt.plot(exp_tspan, dmso_avgs, 'rx', label='DMSO data')
+    plt.errorbar(exp_tspan, bim_avgs, yerr=bim_stds, label='Bim data')
+    plt.errorbar(exp_tspan, bid_avgs, yerr=bid_stds, label='Bid data')
 
     for i in range(0, num_samples):
         num_mixed_positions = len(mixed_positions)
@@ -370,11 +368,11 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
         offset_tspan = exp_tspan + cur_t_offset
 
         # Get the simulation data
-        (dmso_sim, bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
+        (bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
                                                 mcmc.cur_params(rand_position))
    
         # Plot simulations
-        plt.plot(exp_tspan, dmso_sim, 'r', alpha=0.01)
+        #plt.plot(exp_tspan, dmso_sim, 'r', alpha=0.01)
         plt.plot(exp_tspan, bim_sim, 'g', alpha=0.01)
         plt.plot(exp_tspan, bid_sim, 'b', alpha=0.01)
 
@@ -397,16 +395,16 @@ def plot_position(mcmc, position, title=None, report=None):
     offset_tspan = exp_tspan + cur_t_offset
 
     # Get the simulation data
-    (dmso_sim, bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
+    (bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
                                                     mcmc.cur_params(position))
    
     # Plot data
-    plt.plot(offset_tspan, dmso_avgs, 'x', label='DMSO data')
-    plt.plot(offset_tspan, bim_avgs, 'x', label='Bim data')
-    plt.plot(offset_tspan, bid_avgs, 'x', label='Bid data')
+    #plt.plot(offset_tspan, dmso_avgs, 'x', label='DMSO data')
+    plt.errorbar(offset_tspan, bim_avgs, yerr=bim_stds, label='Bim data')
+    plt.errorbar(offset_tspan, bid_avgs, yerr=bid_stds, label='Bid data')
 
     # Plot simulations
-    plt.plot(offset_tspan, dmso_sim, label='DMSO')
+    #plt.plot(offset_tspan, dmso_sim, label='DMSO')
     plt.plot(offset_tspan, bim_sim, label='Bim')
     plt.plot(offset_tspan, bid_sim, label='Bid')
 
