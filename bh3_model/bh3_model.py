@@ -39,7 +39,8 @@ class Model(object):
         self.initial_conditions = []
         self.sim_param_values = numpy.empty(10)
     
-        self.parameters[0] = Parameter('fmax', 116.29)
+        #self.parameters[0] = Parameter('fmax', 116.29)
+        self.parameters[0] = Parameter('fmax', 1.1629)
         self.parameters[1] = Parameter('k_agg', 0.023158)
         self.parameters[2] = Parameter('k_bg', 0.002261)
         self.parameters[3] = Parameter('t_offset', 2.184)
@@ -49,7 +50,8 @@ class Model(object):
         self.parameters[7] = Parameter('k2_bid', 0.004541)
         self.parameters[8] = Parameter('n', 8.059)
         #self.parameters[9] = Parameter('f0', self.f0)
-        self.parameters[9] = Parameter('f0', 16.441)
+        #self.parameters[9] = Parameter('f0', 16.441)
+        self.parameters[9] = Parameter('f0', 0.16441)
 
         self.observables[0] = Observable('jc1', [0], [1])
 
@@ -324,7 +326,7 @@ def prior(mcmc, position):
     """
     param_vals = mcmc.cur_params(position)
 
-    if param_vals[0] < 50 or param_vals[0] > 200: # fmax
+    if param_vals[0] < 0.50 or param_vals[0] > 2.0: # fmax
         return 1e15
     if param_vals[1] < 0 or param_vals[1] > 10: # k_agg
         return 1e15
@@ -342,7 +344,7 @@ def prior(mcmc, position):
         return 1e15
     if param_vals[8] < 1 or param_vals[8] > 25: # n
         return 1e15
-    if param_vals[9] < 0 or param_vals[9] > 25: # f0
+    if param_vals[9] < 0 or param_vals[9] > 0.25: # f0
         return 1e15
 
     return 0
