@@ -1,6 +1,7 @@
 .DS_Store
 *.pptx
 *.pyc
+*.swp
 bh3_model/old_fits
 bh3_model/current_fits
 bh3_model/data/mitochondrial number.pdf
