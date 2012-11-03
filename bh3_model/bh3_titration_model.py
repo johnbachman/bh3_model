@@ -32,7 +32,7 @@ class Model(object):
     """
 
     def __init__(self, f0):
-        self.num_params = 33 
+        self.num_params = 21 
         self.f0 = f0
 
         self.parameters = [None] * self.num_params
@@ -52,32 +52,32 @@ class Model(object):
         self.parameters[7] = Parameter('k1_bim10', 0.0147)
         self.parameters[8] = Parameter('k1_bim3', 0.0097)
         self.parameters[9] = Parameter('k1_bim1', 0.0095)
-        self.parameters[10] = Parameter('k1_bim03', 0.0185)
-        self.parameters[11] = Parameter('k1_bim01', 0.009)
-        self.parameters[12] = Parameter('k1_bim003', 0.006)
-        self.parameters[13] = Parameter('k1_bim001', 0.001)
+        #self.parameters[10] = Parameter('k1_bim03', 0.0185)
+        #self.parameters[11] = Parameter('k1_bim01', 0.009)
+        #self.parameters[12] = Parameter('k1_bim003', 0.006)
+        #self.parameters[13] = Parameter('k1_bim001', 0.001)
 
-        self.parameters[14] = Parameter('k1_bid100', 0.065)
-        self.parameters[15] = Parameter('k1_bid30', 0.054)
-        self.parameters[16] = Parameter('k1_bid10', 0.0428)
-        self.parameters[17] = Parameter('k1_bid3', 0.0300)
-        self.parameters[18] = Parameter('k1_bid1', 0.025)
-        self.parameters[19] = Parameter('k1_bid03', 0.022)
-        self.parameters[20] = Parameter('k1_bid01', 0.01)
-        self.parameters[21] = Parameter('k1_bid003', 0.01)
-        self.parameters[22] = Parameter('k1_bid001', 0.01)
+        self.parameters[10] = Parameter('k1_bid100', 0.065)
+        self.parameters[11] = Parameter('k1_bid30', 0.054)
+        self.parameters[12] = Parameter('k1_bid10', 0.0428)
+        self.parameters[13] = Parameter('k1_bid3', 0.0300)
+        self.parameters[14] = Parameter('k1_bid1', 0.025)
+        #self.parameters[19] = Parameter('k1_bid03', 0.022)
+        #self.parameters[20] = Parameter('k1_bid01', 0.01)
+        #self.parameters[21] = Parameter('k1_bid003', 0.01)
+        #self.parameters[22] = Parameter('k1_bid001', 0.01)
 
-        self.parameters[23] = Parameter('k2_100', 0.12)
-        self.parameters[24] = Parameter('k2_30', 0.07)
-        self.parameters[25] = Parameter('k2_10', 0.098)
-        self.parameters[26] = Parameter('k2_3', 0.083)
-        self.parameters[27] = Parameter('k2_1', 0.019)
-        self.parameters[28] = Parameter('k2_03', 0.0037)
-        self.parameters[29] = Parameter('k2_01', 0.001)
-        self.parameters[30] = Parameter('k2_003', 0.001)
-        self.parameters[31] = Parameter('k2_001', 0.0001)
+        self.parameters[15] = Parameter('k2_100', 1)
+        self.parameters[16] = Parameter('k2_30', 2)
+        self.parameters[17] = Parameter('k2_10', 3)
+        self.parameters[18] = Parameter('k2_3', 4)
+        self.parameters[19] = Parameter('k2_1', 5)
+        #self.parameters[28] = Parameter('k2_03', 0.0037)
+        #self.parameters[29] = Parameter('k2_01', 0.001)
+        #self.parameters[30] = Parameter('k2_003', 0.001)
+        #self.parameters[31] = Parameter('k2_001', 0.0001)
 
-        self.parameters[32] = Parameter('n', 4)
+        self.parameters[20] = Parameter('n', 0.2)
 
         self.observables[0] = Observable('jc1', [0], [1])
 
@@ -98,17 +98,17 @@ class Model(object):
         k_bg = self.sim_param_values[2]
         t_offset = self.sim_param_values[3]
         f0 = self.sim_param_values[4]
-        n = self.sim_param_values[32]
+        n = self.sim_param_values[20]
 
-        dmso = (f0 +
-               (fmax*
-               (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-k_bg*(tspan + t_offset)))
+        #dmso = (f0 +
+        #       (fmax*
+        #       (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
+        #       numpy.exp(-k_bg*(tspan + t_offset)))
 
         # Catalyst Activation Model
         # ==========================
-        bim = numpy.zeros((MAX_TIME_INDEX, NUM_CONCS))
-        bid = numpy.zeros((MAX_TIME_INDEX, NUM_CONCS))
+        bim = numpy.zeros((MAX_TIME_INDEX, len(BIM_RANGE)))
+        bid = numpy.zeros((MAX_TIME_INDEX, len(BID_RANGE)))
 
         #### A version with the k2 linearly dependent on concentration
         #def catalyst_activation(k1, conc):
@@ -120,13 +120,18 @@ class Model(object):
             return (f0 + (fmax * (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
                     numpy.exp(-k1 * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) * (tspan + t_offset)))
 
-        for i in range(NUM_CONCS):
-            bim[:, i] = catalyst_activation(self.sim_param_values[5 + i], 
-                                            self.sim_param_values[23 + i])
-            bid[:, i] = catalyst_activation(self.sim_param_values[14 + i],
-                                            self.sim_param_values[23 + i])
+        def logistic_activation(k1, k2):
+            return (f0 + (fmax * (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
+                    numpy.exp(-k1 * (1/(1 + numpy.exp(-n*(tspan + k2)))) * (tspan + t_offset)))
 
-        return (dmso, bim, bid) 
+        for i in range(len(BIM_RANGE)):
+            bim[:, i] = catalyst_activation(self.sim_param_values[5 + i], 
+                                            self.sim_param_values[15 + i])
+            bid[:, i] = catalyst_activation(self.sim_param_values[10 + i],
+                                            self.sim_param_values[15 + i])
+
+        #return (dmso, bim, bid) 
+        return (bim, bid) 
 
 # Instantiate the model
 # =====================
@@ -145,7 +150,7 @@ def do_fit():
     #opts.tspan = sim_tspan
     opts.estimate_params = model.parameters
     opts.initial_values = [p.value for p in opts.estimate_params]
-    opts.nsteps = 20000
+    opts.nsteps = 1000000
     opts.likelihood_fn = likelihood
     opts.prior_fn = prior
     opts.step_fn = step
@@ -171,8 +176,6 @@ def do_fit():
     s = "best fit position: " + str(p_name_vals)
     print s
     rep.addText(s)
-
-    """
 
     # Output some statistics
     mixed_start = opts.nsteps / 2
@@ -212,6 +215,7 @@ def do_fit():
                             title="Sampling of Fits", report=rep)
     plt.close()
 
+    """
     # Plot histogram of k1_bid/k1_bim ratio
     plt.figure()
     k1_diffs = mixed_accept_positions[:,5] - mixed_accept_positions[:,4]
@@ -292,7 +296,7 @@ def do_fit():
     """
 
     # Add source code to report 
-    rep.addPythonCode('bh3_model.py')
+    rep.addPythonCode('bh3_titration_model.py')
 
     # Write report
     rep.writeReport('bh3_model_mcmc_fit')
@@ -314,19 +318,19 @@ def likelihood(mcmc, position):
 
     # Calculate objective function values
     # ===================================
-    (dmso_sim, bim_sim, bid_sim) = model.simulate(offset_tspan,
+    (bim_sim, bid_sim) = model.simulate(offset_tspan,
                                                 mcmc.cur_params(position))
 
     #dmso_obj = numpy.sum((dmso_avgs - dmso_sim) ** 2 /
     #                     (2 * dmso_stds ** 2))
 
     bim_obj = 0
-    for i in range(NUM_CONCS):
+    for i in range(len(BIM_RANGE)):
         bim_obj += numpy.sum((bim_avgs[:, i] - bim_sim[:, i]) ** 2 /
                 (2 * bim_stds[:, i] ** 2))
 
     bid_obj = 0
-    for i in range(NUM_CONCS):
+    for i in range(len(BID_RANGE)):
         bid_obj += numpy.sum((bid_avgs[:, i] - bid_sim[:, i]) ** 2 /
                 (2 * bid_stds[:, i] ** 2))
 
@@ -359,10 +363,10 @@ def prior(mcmc, position):
         return 1e15
     if param_vals[4] < 0 or param_vals[4] > 0.4: # f0
         return 1e15
-    for i in range(5, 32):                       # All rate parameters
-        if param_vals[i] < 0 or param_vals[i] > 10:
+    for i in range(5, 20):                       # All rate parameters
+        if param_vals[i] < 0 or param_vals[i] > 50:
             return 1e15
-    if param_vals[32] < 1 or param_vals[32] > 10:  # n
+    if param_vals[20] < 0 or param_vals[20] > 10:  # n
         return 1e15
 
     return 0
@@ -374,7 +378,7 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
     plt.figure()
     
     # Plot data
-    plt.plot(exp_tspan, dmso_avgs, 'rx', label='DMSO data')
+    #plt.plot(exp_tspan, dmso_avgs, 'rx', label='DMSO data')
     plt.plot(exp_tspan, bim_avgs, 'gx', label='Bim data')
     plt.plot(exp_tspan, bid_avgs, 'bx', label='Bid data')
 
@@ -388,11 +392,11 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
         offset_tspan = exp_tspan + cur_t_offset
 
         # Get the simulation data
-        (dmso_sim, bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
+        (bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
                                                 mcmc.cur_params(rand_position))
    
         # Plot simulations
-        plt.plot(exp_tspan, dmso_sim, 'r', alpha=0.01)
+        #plt.plot(exp_tspan, dmso_sim, 'r', alpha=0.01)
         plt.plot(exp_tspan, bim_sim, 'g', alpha=0.01)
         plt.plot(exp_tspan, bid_sim, 'b', alpha=0.01)
 
@@ -414,31 +418,31 @@ def plot_position(mcmc, position, title=None, report=None):
     offset_tspan = exp_tspan + cur_t_offset
 
     # Get the simulation data
-    (dmso_sim, bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
+    (bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
                                                     mcmc.cur_params(position))
    
     # Plot Bim data
     plt.figure()
-    plt.plot(offset_tspan, dmso_avgs, 'o', label='DMSO data')
-    for i in range(NUM_CONCS):
+    for i in range(len(BIM_RANGE)):
         plt.plot(offset_tspan, bim_avgs[:,i], 'x')
     # Plot Bim simulations
-    plt.plot(offset_tspan, dmso_sim, label='DMSO')
-    for i in range(NUM_CONCS):
+    for i in range(len(BIM_RANGE)):
         plt.plot(offset_tspan, bim_sim[:, i])
 
     if title is not None:
         plt.title(title + ", Bim")
     plt.show()
 
+    # Add figure to report 
+    if report is not None:
+        rep.addCurrentFigure()
+
     # Plot Bid data
     plt.figure()
-    plt.plot(offset_tspan, dmso_avgs, 'o', label='DMSO data')
-    for i in range(NUM_CONCS):
+    for i in range(len(BID_RANGE)):
         plt.plot(offset_tspan, bid_avgs[:,i], 'x')
     # Plot Bid simulations
-    plt.plot(offset_tspan, dmso_sim, label='DMSO')
-    for i in range(NUM_CONCS):
+    for i in range(len(BID_RANGE)):
         plt.plot(offset_tspan, bid_sim[:, i])
 
     if title is not None:
