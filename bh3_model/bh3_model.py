@@ -34,7 +34,7 @@ class Model(object):
     def __init__(self, f0):
         self.f0 = f0
 
-        self.num_params = 8 
+        self.num_params = 9 
         self.parameters = [None] * self.num_params
         self.observables = [None] * 1
         self.initial_conditions = []
@@ -48,7 +48,7 @@ class Model(object):
         self.parameters[5] = Parameter('k1_bid', 0.09)
         self.parameters[6] = Parameter('k2', 0.009369)
         self.parameters[7] = Parameter('n', 8)
-        #self.parameters[2] = Parameter('k_bg', 0.002261)
+        self.parameters[8] = Parameter('k_bg', 0.002261)
         #self.parameters[7] = Parameter('k2_bid', 0.004541)
         #self.parameters[8] = Parameter('n', 8.059)
         #self.parameters[9] = Parameter('f0', self.f0)
@@ -75,31 +75,30 @@ class Model(object):
         k1_bim = self.sim_param_values[4]
         k1_bid = self.sim_param_values[5]
         k2 = self.sim_param_values[6]
-        n = self.sim_param_values[7]
-        #n = 1
+        #n = self.sim_param_values[7]
+        k_bg = self.sim_param_values[8]
+        n = 1
 
-        """
         dmso = (f0 +
                (fmax*
                (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
                numpy.exp(-k_bg*(tspan + t_offset)))
-        """
 
         # Catalysis Activation Model
         # ==========================
         bim = (f0 +
                (fmax*
                     (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-k1_bim * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) *
-                   (tspan + t_offset)))
+               numpy.exp(-(k_bg + (k1_bim * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) *
+                   (tspan + t_offset)))))
         bid = (f0 +
                (fmax*
                     (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-k1_bid * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) *
-                   (tspan + t_offset)))
+               numpy.exp(-(k_bg + (k1_bid * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) *
+                   (tspan + t_offset)))))
 
-        #return (dmso, bim, bid) 
-        return (bim, bid) 
+        return (dmso, bim, bid) 
+        #return (bim, bid) 
 
 # Instantiate the model
 # =====================
@@ -298,10 +297,10 @@ def likelihood(mcmc, position):
 
     # Calculate objective function values
     # ===================================
-    #(dmso_sim, bim_sim, bid_sim) = model.simulate(offset_tspan,
-    #                                            mcmc.cur_params(position))
-    (bim_sim, bid_sim) = model.simulate(offset_tspan,
+    (dmso_sim, bim_sim, bid_sim) = model.simulate(offset_tspan,
                                                 mcmc.cur_params(position))
+    #(bim_sim, bid_sim) = model.simulate(offset_tspan,
+    #                                            mcmc.cur_params(position))
 
     #dmso_obj = numpy.sum((dmso_avgs - dmso_sim) ** 2 /
     #                     (2 * dmso_stds ** 2))
@@ -312,6 +311,7 @@ def likelihood(mcmc, position):
 
     #return (dmso_obj**2) + bim_obj + bid_obj
     return bim_obj + bid_obj
+    #return dmso_obj
 
 def step(mcmc):
     """The function to call at every iteration. Currently just prints
@@ -328,14 +328,6 @@ def prior(mcmc, position):
     """
     param_vals = mcmc.cur_params(position)
 
-    if param_vals[0] < 0.50 or param_vals[0] > 2.0: # fmax
-        return 1e15
-    if param_vals[1] < 0 or param_vals[1] > 10: # k_agg
-        return 1e15
-    if param_vals[2] < 0 or param_vals[2] > 20: # t_offset
-        return 1e15
-    if param_vals[3] < 0 or param_vals[3] > 0.10: # f0
-        return 1e15
     if param_vals[4] < 0 or param_vals[4] > 10: # k1_bim
         return 1e15
     if param_vals[5] < 0 or param_vals[5] > 10: # k1_bid
@@ -344,8 +336,29 @@ def prior(mcmc, position):
         return 1e15
     if param_vals[7] < 1 or param_vals[7] > 10: # k2
         return 1e15
+    if param_vals[8] < 0 or param_vals[8] > 10: # k_bg
+        return 1e15
+    if param_vals[3] < 0:
+        return 1e15
 
+    prior = 0
+    prior += ((param_vals[0] - 1.85)**2) / (2 * 0.1**2) # fmax
+    prior += ((param_vals[1] - 0.022)**2) / (2 *0.03**2) # k_agg
+    prior += ((param_vals[2] - 2.5)**2) / (2*0.5**2) # t_offset
+    prior += ((param_vals[3] - 0.0)**2) / (2 * 0.1**2) # f0
+    
+    return prior
+    """
+    if param_vals[0] < 0.50 or param_vals[0] > 2.0: # fmax
+        return 1e15
+    if param_vals[1] < 0 or param_vals[1] > 10: # k_agg
+        return 1e15
+    if param_vals[2] < 0 or param_vals[2] > 20: # t_offset
+        return 1e15
+    if param_vals[3] < 0 or param_vals[3] > 0.10: # f0
+        return 1e15
     return 0
+    """
     
 # Plotting Functions
 # ==================
@@ -354,7 +367,7 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
     plt.figure()
     
     # Plot data
-    #plt.plot(exp_tspan, dmso_avgs, 'rx', label='DMSO data')
+    plt.errorbar(exp_tspan, dmso_avgs, yerr=dmso_stds, label='DMSO data')
     plt.errorbar(exp_tspan, bim_avgs, yerr=bim_stds, label='Bim data')
     plt.errorbar(exp_tspan, bid_avgs, yerr=bid_stds, label='Bid data')
 
@@ -368,11 +381,11 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
         offset_tspan = exp_tspan + cur_t_offset
 
         # Get the simulation data
-        (bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
+        (dmso_sim, bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
                                                 mcmc.cur_params(rand_position))
    
         # Plot simulations
-        #plt.plot(exp_tspan, dmso_sim, 'r', alpha=0.01)
+        plt.plot(exp_tspan, dmso_sim, 'r', alpha=0.01)
         plt.plot(exp_tspan, bim_sim, 'g', alpha=0.01)
         plt.plot(exp_tspan, bid_sim, 'b', alpha=0.01)
 
@@ -395,16 +408,16 @@ def plot_position(mcmc, position, title=None, report=None):
     offset_tspan = exp_tspan + cur_t_offset
 
     # Get the simulation data
-    (bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
+    (dmso_sim, bim_sim, bid_sim) = mcmc.options.model.simulate(offset_tspan,
                                                     mcmc.cur_params(position))
    
     # Plot data
-    #plt.plot(offset_tspan, dmso_avgs, 'x', label='DMSO data')
+    plt.errorbar(offset_tspan, dmso_avgs, yerr=dmso_stds, label='DMSO data')
     plt.errorbar(offset_tspan, bim_avgs, yerr=bim_stds, label='Bim data')
     plt.errorbar(offset_tspan, bid_avgs, yerr=bid_stds, label='Bid data')
 
     # Plot simulations
-    #plt.plot(offset_tspan, dmso_sim, label='DMSO')
+    plt.plot(offset_tspan, dmso_sim, label='DMSO')
     plt.plot(offset_tspan, bim_sim, label='Bim')
     plt.plot(offset_tspan, bid_sim, label='Bid')
 
