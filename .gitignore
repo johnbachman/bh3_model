@@ -1,0 +1,10 @@
+.DS_Store
+*.pptx
+*.pyc
+bh3_model/old_fits
+bh3_model/current_fits
+bh3_model/data/mitochondrial number.pdf
+bh3_model/bh3_model_eqns.pdf
+bh3_model/bh3_model_eqns.txt
+bh3_model/bh3_model_mcmc_fit.pdf
+
