@@ -32,7 +32,7 @@ class Model(object):
     """
 
     def __init__(self, f0):
-        self.num_params = 21 
+        self.num_params = 30 
         self.f0 = f0
 
         self.parameters = [None] * self.num_params
@@ -44,7 +44,7 @@ class Model(object):
         self.parameters[1] = Parameter('k_agg', 0.020)
         self.parameters[2] = Parameter('k_bg', 0.002261)
         self.parameters[3] = Parameter('t_offset', 4.0)
-        self.parameters[4] = Parameter('f0', 0)
+        self.parameters[4] = Parameter('f0', 0.1)
 
         k1_initval = 0.0135
         self.parameters[5] = Parameter('k1_bim100', 0.032)
@@ -67,17 +67,33 @@ class Model(object):
         #self.parameters[21] = Parameter('k1_bid003', 0.01)
         #self.parameters[22] = Parameter('k1_bid001', 0.01)
 
-        self.parameters[15] = Parameter('k2_100', 1)
-        self.parameters[16] = Parameter('k2_30', 2)
-        self.parameters[17] = Parameter('k2_10', 3)
-        self.parameters[18] = Parameter('k2_3', 4)
-        self.parameters[19] = Parameter('k2_1', 5)
-        #self.parameters[28] = Parameter('k2_03', 0.0037)
-        #self.parameters[29] = Parameter('k2_01', 0.001)
-        #self.parameters[30] = Parameter('k2_003', 0.001)
-        #self.parameters[31] = Parameter('k2_001', 0.0001)
+        self.parameters[15] = Parameter('k2_bim100', 13)
+        self.parameters[16] = Parameter('k2_bim30', 20)
+        self.parameters[17] = Parameter('k2_bim10', 29)
+        self.parameters[18] = Parameter('k2_bim3', 37)
+        self.parameters[19] = Parameter('k2_bim1', 40)
+        #self.parameters[10] = Parameter('k2_bim03', 0.0185)
+        #self.parameters[11] = Parameter('k2_bim01', 0.009)
+        #self.parameters[12] = Parameter('k2_bim003', 0.006)
+        #self.parameters[13] = Parameter('k2_bim001', 0.001)
 
-        self.parameters[20] = Parameter('n', 0.2)
+        self.parameters[20] = Parameter('k2_bid100', 2.4)
+        self.parameters[21] = Parameter('k2_bid30', 4.8)
+        self.parameters[22] = Parameter('k2_bid10', 7.6)
+        self.parameters[23] = Parameter('k2_bid3', 13.1)
+        self.parameters[24] = Parameter('k2_bid1', 25.7)
+        #self.parameters[19] = Parameter('k2_bid03', 0.022)
+        #self.parameters[20] = Parameter('k2_bid01', 0.01)
+        #self.parameters[21] = Parameter('k2_bid003', 0.01)
+        #self.parameters[22] = Parameter('k2_bid001', 0.01)
+
+        self.parameters[25] = Parameter('k3_bid100', 0.2)
+        self.parameters[26] = Parameter('k3_bid30', 0.2)
+        self.parameters[27] = Parameter('k3_bid10', 0.2)
+        self.parameters[28] = Parameter('k3_bid3', 0.2)
+        self.parameters[29] = Parameter('k3_bid1', 0.2)
+
+        #self.parameters[30] = Parameter('k3', 0.2)
 
         self.observables[0] = Observable('jc1', [0], [1])
 
@@ -98,7 +114,6 @@ class Model(object):
         k_bg = self.sim_param_values[2]
         t_offset = self.sim_param_values[3]
         f0 = self.sim_param_values[4]
-        n = self.sim_param_values[20]
 
         #dmso = (f0 +
         #       (fmax*
@@ -116,19 +131,21 @@ class Model(object):
         #            numpy.exp(-k1 * ((1 - numpy.exp(-((k2_slope*conc)+k2_int)*(tspan+t_offset)))**n) * (tspan + t_offset)))
 
         # A version with the k2 shared for each concentration
-        def catalyst_activation(k1, k2):
+        def catalyst_activation(k1, k2, k3):
             return (f0 + (fmax * (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
                     numpy.exp(-k1 * ((1 - numpy.exp(-k2*(tspan+t_offset)))**n) * (tspan + t_offset)))
 
-        def logistic_activation(k1, k2):
+        def logistic_activation(k1, k2, k3):
             return (f0 + (fmax * (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-                    numpy.exp(-k1 * (1/(1 + numpy.exp(-n*(tspan + k2)))) * (tspan + t_offset)))
+                    numpy.exp(-k1 * (1/(1 + numpy.exp(-k3*(tspan + k2)))) * (tspan + k2)))
 
         for i in range(len(BIM_RANGE)):
-            bim[:, i] = catalyst_activation(self.sim_param_values[5 + i], 
-                                            self.sim_param_values[15 + i])
-            bid[:, i] = catalyst_activation(self.sim_param_values[10 + i],
-                                            self.sim_param_values[15 + i])
+            bim[:, i] = logistic_activation(self.sim_param_values[5 + i], 
+                                            self.sim_param_values[15 + i],
+                                            self.sim_param_values[25 + i])
+            bid[:, i] = logistic_activation(self.sim_param_values[10 + i],
+                                            self.sim_param_values[20 + i],
+                                            self.sim_param_values[25 + i])
 
         #return (dmso, bim, bid) 
         return (bim, bid) 
@@ -150,7 +167,7 @@ def do_fit():
     #opts.tspan = sim_tspan
     opts.estimate_params = model.parameters
     opts.initial_values = [p.value for p in opts.estimate_params]
-    opts.nsteps = 1000000
+    opts.nsteps = 5000
     opts.likelihood_fn = likelihood
     opts.prior_fn = prior
     opts.step_fn = step
@@ -215,6 +232,36 @@ def do_fit():
                             title="Sampling of Fits", report=rep)
     plt.close()
 
+    # FIXME FIXME FIXME
+    # Get mean and std for all k1_bim* (range 5-9)
+    # NOTE!!! This will have to change if I change the parameter indices
+    import pdb; pdb.set_trace()
+    BIM_K1_RANGE = range(5,10)
+    k1_bim_means = numpy.mean(mixed_accept_positions[:,BIM_K1_RANGE])
+    k1_bim_std = numpy.std(mixed_accept_positions[:,BIM_K1_RANGE])
+    BID_K1_RANGE = range(10,15)
+    k1_bid_means = numpy.mean(mixed_accept_positions[:,BID_K1_RANGE])
+    k1_bid_std = numpy.std(mixed_accept_positions[:,BID_K1_RANGE])
+    
+    plt.figure()
+    plt.errorbar(concs[0:5], k1_bim_means, yerr=k1_bim_std)
+    plt.errorbar(concs[0:5], k1_bid_means, yerr=k1_bid_std)
+    plt.show()
+    rep.addCurrentFigure()
+
+    BIM_K2_RANGE = range(15,20)
+    k2_bim_means = numpy.mean(mixed_accept_positions[:,BIM_K2_RANGE])
+    k2_bim_std = numpy.std(mixed_accept_positions[:,BIM_K2_RANGE])
+    BID_K2_RANGE = range(20,25)
+    k2_bid_means = numpy.mean(mixed_accept_positions[:,BID_K2_RANGE])
+    k2_bid_std = numpy.std(mixed_accept_positions[:,BID_K2_RANGE])
+    
+    plt.figure()
+    plt.errorbar(concs[0:5], k2_bim_means, yerr=k2_bim_std)
+    plt.errorbar(concs[0:5], k2_bid_means, yerr=k2_bid_std)
+    plt.show()
+    rep.addCurrentFigure()
+    ### FIXME FIXME FIXME
     """
     # Plot histogram of k1_bid/k1_bim ratio
     plt.figure()
@@ -363,12 +410,13 @@ def prior(mcmc, position):
         return 1e15
     if param_vals[4] < 0 or param_vals[4] > 0.4: # f0
         return 1e15
+    """
     for i in range(5, 20):                       # All rate parameters
         if param_vals[i] < 0 or param_vals[i] > 50:
             return 1e15
     if param_vals[20] < 0 or param_vals[20] > 10:  # n
         return 1e15
-
+    """
     return 0
     
 # Plotting Functions
