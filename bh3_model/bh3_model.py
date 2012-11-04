@@ -46,9 +46,9 @@ class Model(object):
         self.parameters[3] = Parameter('f0', 0.16441)
         self.parameters[4] = Parameter('k1_bim', 0.0135)
         self.parameters[5] = Parameter('k1_bid', 0.09)
-        self.parameters[6] = Parameter('k2', 0.009369)
-        self.parameters[7] = Parameter('n', 8)
-        self.parameters[8] = Parameter('k_bg', 0.002261)
+        self.parameters[6] = Parameter('k2_bim', 5)
+        self.parameters[7] = Parameter('k2_bid', 5)
+        self.parameters[8] = Parameter('k_sharp', 8)
         #self.parameters[7] = Parameter('k2_bid', 0.004541)
         #self.parameters[8] = Parameter('n', 8.059)
         #self.parameters[9] = Parameter('f0', self.f0)
@@ -74,15 +74,14 @@ class Model(object):
         f0 = self.sim_param_values[3]
         k1_bim = self.sim_param_values[4]
         k1_bid = self.sim_param_values[5]
-        k2 = self.sim_param_values[6]
-        #n = self.sim_param_values[7]
-        k_bg = self.sim_param_values[8]
-        n = 1
+        k2_bim = self.sim_param_values[6]
+        k2_bid = self.sim_param_values[7]
+        k_sharp = self.sim_param_values[8]
 
-        dmso = (f0 +
-               (fmax*
-               (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
-               numpy.exp(-k_bg*(tspan + t_offset)))
+        #dmso = (f0 +
+        #       (fmax*
+        #       (1 - numpy.exp(-k_agg*(tspan + t_offset)))) *
+        #       numpy.exp(-k_bg*(tspan + t_offset)))
 
         # Catalysis Activation Model
         # ==========================
