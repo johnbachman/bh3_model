@@ -3,6 +3,8 @@ Source code for fitting a simple model derived from Newmeyer to
 Sarosiek/Letai BH3 profiling data.
 """
 
+import sys
+import pickle
 import bayessb
 from bayessb.plot import surf
 import numpy
@@ -13,7 +15,7 @@ import collections
 # Get the data
 import bh3_titration_data as data
 (data_mean, data_sd) = data.normalize_to_relative_max(11, 20)
-COL_TO_FIT = 6 
+COL_TO_FIT = None # This will be initialized as a command-line arg
 
 T_OFFSET_INDEX = 3 
 
@@ -70,7 +72,7 @@ model = Model()
 
 # Do the fit!
 # ===========
-def do_fit():
+def do_fit(nsteps, output_filename):
     # Set the random number generator seed
     seed = 2
     random = numpy.random.RandomState(seed)
@@ -80,7 +82,7 @@ def do_fit():
     opts.model = model
     opts.estimate_params = model.parameters
     opts.initial_values = [p.value for p in opts.estimate_params]
-    opts.nsteps = 100000
+    opts.nsteps = nsteps
     opts.likelihood_fn = likelihood
     opts.prior_fn = prior
     opts.step_fn = step
@@ -167,8 +169,11 @@ def do_fit():
     rep.addPythonCode('bh3_model_scaled.py')
 
     # Write report
-    rep.writeReport('bh3_model_mcmc_fit')
+    rep.writeReport(output_filename)
 
+    # Pickle the positions
+    f = open(output_filename + str('.pck'), 'w')
+    pickle.dump(mcmc.positions, f)
     return mcmc
 
 # Define the likelihood, prior and step functions
@@ -283,6 +288,11 @@ def plot_position(mcmc, position, title=None, report=None):
 # Main function
 # =============
 if __name__ == '__main__':
-    do_fit()
+    if len(sys.argv) <= 2:
+        raise Exception("You must specify the column index, number of steps, and the output filename.")
+    COL_TO_FIT = int(sys.argv[1])
+    nsteps = int(sys.argv[2])
+    output_filename = sys.argv[3]
+    do_fit(nsteps, output_filename)
 
 
