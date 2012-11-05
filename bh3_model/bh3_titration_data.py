@@ -29,7 +29,9 @@ BIM_RANGE = range(BIM_START, BIM_START + NUM_CONCS)
 BID_RANGE = range(BID_START, BID_START + NUM_CONCS)
 #BIM_RANGE = range(BIM_START, BIM_START + 5)
 #BID_RANGE = range(BID_START, BID_START + 5)
+MAX_TIME_INDEX = 37
 
+exp_tspan = data[0:MAX_TIME_INDEX, TIME]
 concs = numpy.array([100, 30, 10, 3, 1, 0.3, 0.1, 0.03, 0.01])
 
 def normalize_to_absolute_max():
@@ -235,8 +237,6 @@ def plot_data(data_mean, data_sd, time_col, col_range, logy=False):
     plt.show()
 
 """
-MAX_TIME_INDEX = 37
-exp_tspan = data_mean[0:MAX_TIME_INDEX, TIME]
 fccp_avgs = data_mean[0:MAX_TIME_INDEX, FCCP]
 fccp_stds = data_sd[0:MAX_TIME_INDEX, FCCP]
 dmso_avgs = data_mean[0:MAX_TIME_INDEX, DMSO]
