@@ -246,7 +246,7 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
     plt.xlim(-10, 190)
     if title is not None:
         plt.title(title)
-    plt.show()
+    #plt.show()
 
     # Add figure to report 
     if report is not None:
@@ -254,7 +254,7 @@ def plot_curve_distribution(mcmc, mixed_positions, num_samples,
 
 def plot_position(mcmc, position, title=None, report=None):
     """Note that position is expected to be in log-transform format."""
-    plt.ion()
+    #plt.ion()
     plt.figure()
 
     # Get the current value for the time offset
@@ -279,7 +279,7 @@ def plot_position(mcmc, position, title=None, report=None):
     plt.xlim(-10, 190)
     if title is not None:
         plt.title(title)
-    plt.show()
+    #plt.show()
 
     # Add figure to report 
     if report is not None:
