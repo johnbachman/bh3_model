@@ -9,7 +9,7 @@ import bayessb
 from bayessb.plot import surf
 import numpy
 import matplotlib.pyplot as plt
-from tbidbaxlipo.util.report import Report
+from pysb.util.report import Report
 import collections
 
 # Get the data
