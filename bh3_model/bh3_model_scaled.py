@@ -91,9 +91,9 @@ def do_fit(nsteps, output_filename):
     opts.seed = seed
     mcmc = bayessb.MCMC(opts)
 
-    """
     # Plot before curves
     mcmc.initialize()
+    """
     plot_position(mcmc, mcmc.position, title="Initial Values", report=rep)
     plt.close()
     """
