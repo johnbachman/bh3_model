@@ -99,6 +99,7 @@ def do_fit(nsteps, output_filename):
     # Run it!
     mcmc.estimate()
 
+    """
     # Plot best fit position
     #mcmc.position = mcmc.positions[numpy.argmin(mcmc.likelihoods)]
     mcmc.position = mcmc.positions[numpy.argmin(mcmc.posteriors)]
@@ -170,6 +171,7 @@ def do_fit(nsteps, output_filename):
 
     # Write report
     rep.writeReport(output_filename)
+    """
 
     # Pickle the positions
     f = open(output_filename + str('.pck'), 'w')
